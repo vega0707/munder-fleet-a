@@ -25,7 +25,7 @@
     <main class="layout">
       <section id="login-panel" class="login-panel hidden">
         <h1>登录</h1>
-        <p>Web / 远程访问需要鉴权。本机 loopback 免登。</p>
+        <p>Web / 远程访问需要鉴权（优先走 AionCore JWT）。本机 loopback 免登已冻结。</p>
         <form id="login-form">
           <label>用户名 <input name="username" value="owner" autocomplete="username" /></label>
           <label>密码 <input name="password" type="password" value="owner" autocomplete="current-password" /></label>
@@ -36,7 +36,7 @@
       <section id="app-panel" class="app-panel hidden">
         <div class="toolbar">
           <button id="btn-seed" type="button">新建演示任务</button>
-          <button id="btn-claim" type="button">Claim 并完成</button>
+          <button id="btn-claim" type="button">Claim 并干活</button>
           <button id="btn-refresh" type="button">刷新</button>
           <span id="core-health" class="core-pill">Core: …</span>
         </div>
@@ -49,6 +49,16 @@
           <section class="pane">
             <h2>待定</h2>
             <ul id="decision-list" class="list"></ul>
+          </section>
+        </div>
+        <div class="columns">
+          <section class="pane">
+            <h2>Michael 收件箱</h2>
+            <ul id="inbox-list" class="list"></ul>
+          </section>
+          <section class="pane">
+            <h2>执行日志</h2>
+            <ul id="log-list" class="list"></ul>
           </section>
         </div>
       </section>

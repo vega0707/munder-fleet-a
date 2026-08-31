@@ -3,6 +3,8 @@ const appPanel = document.getElementById('app-panel');
 const authStatus = document.getElementById('auth-status');
 const taskList = document.getElementById('task-list');
 const decisionList = document.getElementById('decision-list');
+const inboxList = document.getElementById('inbox-list');
+const logList = document.getElementById('log-list');
 const coreHealth = document.getElementById('core-health');
 
 let projectId = null;
@@ -16,6 +18,14 @@ async function api(path, options = {}) {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
   return data;
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
 }
 
 function renderTasks(tasks) {
@@ -32,7 +42,7 @@ function renderTasks(tasks) {
         <span class="status-${t.status}">${t.status}</span>
         · assignee=${escapeHtml(t.assignee || '—')}
         ${t.reportedTo ? `· → ${escapeHtml(t.reportedTo)}` : ''}
-        ${t.result ? `· ${escapeHtml(t.result)}` : ''}
+        ${t.result ? `· ${escapeHtml(String(t.result).slice(0, 80))}` : ''}
       </div>`;
     taskList.appendChild(li);
   }
@@ -65,12 +75,33 @@ function renderDecisions(decisions) {
   }
 }
 
-function escapeHtml(s) {
-  return String(s)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;');
+function renderInbox(items) {
+  inboxList.innerHTML = '';
+  if (!items.length) {
+    inboxList.innerHTML = '<li class="meta">空</li>';
+    return;
+  }
+  for (const i of items.slice(0, 20)) {
+    const li = document.createElement('li');
+    li.innerHTML = `<div class="title">${escapeHtml(i.summary)}</div>
+      <div class="meta">${escapeHtml(i.kind)} · ${escapeHtml(i.createdAt)}</div>`;
+    inboxList.appendChild(li);
+  }
+}
+
+function renderLogs(logs) {
+  logList.innerHTML = '';
+  if (!logs.length) {
+    logList.innerHTML = '<li class="meta">无日志</li>';
+    return;
+  }
+  for (const l of logs.slice(-20).reverse()) {
+    const li = document.createElement('li');
+    li.innerHTML = `<div class="title">${escapeHtml(l.event)}</div>
+      <div class="meta">${escapeHtml(l.detail.slice(0, 120))}
+      ${l.tokensOut != null ? ` · tok≈${l.tokensIn ?? 0}/${l.tokensOut}` : ''}</div>`;
+    logList.appendChild(li);
+  }
 }
 
 async function ensureProject() {
@@ -88,13 +119,17 @@ async function ensureProject() {
 
 async function refresh() {
   await ensureProject();
-  const [{ tasks }, { decisions }, core] = await Promise.all([
+  const [{ tasks }, { decisions }, { items }, { logs }, core] = await Promise.all([
     api('/api/fleet/tasks'),
     api('/api/fleet/decisions'),
+    api('/api/fleet/michael/inbox'),
+    api('/api/fleet/logs'),
     api('/api/core/health'),
   ]);
   renderTasks(tasks);
   renderDecisions(decisions);
+  renderInbox(items);
+  renderLogs(logs);
   coreHealth.textContent = core.available
     ? `Core: ok (${core.body?.version ?? 'up'})`
     : `Core: offline (${core.reason || 'n/a'})`;
@@ -102,17 +137,15 @@ async function refresh() {
 
 async function seed() {
   await ensureProject();
-  // Claimable work item
   await api('/api/fleet/tasks', {
     method: 'POST',
     body: JSON.stringify({
       projectId,
       title: 'P0 claim demo',
       assignee: 'vega',
-      prompt: '演示 claim → complete',
+      prompt: '演示 claim → 干活 → complete',
     }),
   });
-  // Separate HITL item (PendingDecision blocks only this task)
   const blocked = await api('/api/fleet/tasks', {
     method: 'POST',
     body: JSON.stringify({
@@ -134,28 +167,30 @@ async function seed() {
   await refresh();
 }
 
-async function claimAndComplete() {
-  const { tasks } = await api('/api/fleet/tasks/claim', {
+async function claimAndWork() {
+  // Resolve blockers first so DecisionGate does not 409 the whole owner.
+  const { decisions } = await api('/api/fleet/decisions');
+  for (const d of decisions) {
+    await api(`/api/fleet/decisions/${d.id}/resolve`, {
+      method: 'POST',
+      body: JSON.stringify({ resolution: 'answered', note: 'auto-resolve before work' }),
+    });
+  }
+  const result = await api('/api/fleet/tasks/claim-and-work', {
     method: 'POST',
     body: JSON.stringify({ runtimeId: 'runtime:local', maxTasks: 1 }),
   });
-  if (!tasks.length) {
+  if (!result.tasks.length) {
     authStatus.textContent += ' · 无可 claim 任务';
-    await refresh();
-    return;
   }
-  const task = tasks[0];
-  await api(`/api/fleet/tasks/${task.id}/start`, { method: 'POST' });
-  await api(`/api/fleet/tasks/${task.id}/complete`, {
-    method: 'POST',
-    body: JSON.stringify({ output: 'shell demo complete', reportTo: 'michael' }),
-  });
   await refresh();
 }
 
 async function boot() {
   const status = await api('/api/auth/status');
-  authStatus.textContent = `${status.authMode} · ${status.authenticated ? status.user?.username : '未登录'}`;
+  authStatus.textContent = `${status.authMode} · ${
+    status.authenticated ? status.user?.username : '未登录'
+  }${status.loopbackFrozen ? ' · loopback冻结' : ''}`;
 
   if (!status.authenticated) {
     loginPanel.classList.remove('hidden');
@@ -183,7 +218,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
 });
 
 document.getElementById('btn-seed').addEventListener('click', () => seed().catch(showErr));
-document.getElementById('btn-claim').addEventListener('click', () => claimAndComplete().catch(showErr));
+document.getElementById('btn-claim').addEventListener('click', () => claimAndWork().catch(showErr));
 document.getElementById('btn-refresh').addEventListener('click', () => refresh().catch(showErr));
 
 function showErr(err) {

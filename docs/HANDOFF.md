@@ -23,10 +23,10 @@
 ## 立刻该做的事（按序）
 
 1. `./scripts/bootstrap-forks.sh` —— 拉取上游到 `refs/`（不提交）
-2. 在 `refs/AionCore` 按上游文档跑通 `cargo`/`just` 健康检查
-3. 画清适配层：`src/` 里只放「Munder IPC/Web → AionCore HTTP/WS」与「Multica 语义类型」
-4. 实现最小对象：`Runtime{id,host,clis[],ownerId}` + `Task.assignee` + `PendingDecision`
-5. Spike：单机自动 register runtime；创建一个 task；claim；完成回传
+2. `npm test && npm run demo:full` —— Fleet 语义面
+3. `npm run verify:core` —— AionCore health + JWT（需 cargo build）
+4. `npm run overlay:core` —— 把 Fleet migration 落到 refs/AionCore
+5. org 账号创建 AionCore fork 后合入 `overlays/aioncore-fleet` 的 Rust 路由
 
 ## 明确不要做的事
 
@@ -34,12 +34,14 @@
 - 不要整仓拷贝 Multica 进产品做对外 SaaS（许可附加条件）；协议重写
 - 不要再引入 `solo|distributed` 配置枚举
 - 不要在未读 `COPY_MAP.md` 前大面积合并上游
+- 不要猜测 Agent CLI 线协议（见 AionCore AGENTS）
 
 ## 交接检查清单
 
 - [x] 上游 clone 成功，版本钉在 `docs/VERSIONS.md`（bootstrap 亦写 `refs/VERSIONS.md`）
-- [x] P0 勾选见 README
+- [x] P0–P3 语义面勾选见 ROADMAP / README
 - [x] 有问题记入 `docs/DECISIONS.md` 新条目，不要只留在聊天里
+- [ ] GitHub org fork AionCore + Rust `aionui-fleet` 路由合入（人工）
 
 ## 联系语境
 

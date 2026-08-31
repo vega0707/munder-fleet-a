@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createFleetServer } from './server.ts';
+import { createFleetServer, LOOPBACK_AUTH_CONTRACT } from './server.ts';
 import { FleetStore } from './store.ts';
 
 async function withServer(
@@ -13,7 +13,7 @@ async function withServer(
     host: '127.0.0.1',
     port: 0,
     authMode: mode,
-    coreHealthUrl: null,
+    coreBaseUrl: null,
   });
   const addr = server.address();
   assert.ok(addr && typeof addr === 'object');
@@ -27,12 +27,14 @@ async function withServer(
   }
 }
 
-test('loopback: auto runtime + claim complete without login', async () => {
+test('loopback contract is frozen and claim-and-work runs subprocess', async () => {
   await withServer('loopback', async (base) => {
+    const health = await fetch(`${base}/health`).then((r) => r.json());
+    assert.equal(health.loopbackContract.frozen, true);
+    assert.equal(LOOPBACK_AUTH_CONTRACT.requiresCredentials, false);
+
     const boot = await fetch(`${base}/api/fleet/bootstrap`).then((r) => r.json());
     assert.equal(boot.runtime.id, 'runtime:local');
-    assert.equal(boot.authMode, 'loopback');
-    assert.equal(boot.user.id, 'local-user');
 
     const project = await fetch(`${base}/api/fleet/projects`, {
       method: 'POST',
@@ -40,7 +42,7 @@ test('loopback: auto runtime + claim complete without login', async () => {
       body: JSON.stringify({ name: 'Demo' }),
     }).then((r) => r.json());
 
-    const task = await fetch(`${base}/api/fleet/tasks`, {
+    await fetch(`${base}/api/fleet/tasks`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
@@ -49,23 +51,17 @@ test('loopback: auto runtime + claim complete without login', async () => {
         assignee: 'vega',
         prompt: 'work',
       }),
-    }).then((r) => r.json());
+    });
 
-    const claimed = await fetch(`${base}/api/fleet/tasks/claim`, {
+    const worked = await fetch(`${base}/api/fleet/tasks/claim-and-work`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ runtimeId: 'runtime:local', maxTasks: 1 }),
     }).then((r) => r.json());
-    assert.equal(claimed.tasks[0].id, task.id);
-
-    await fetch(`${base}/api/fleet/tasks/${task.id}/start`, { method: 'POST' });
-    const done = await fetch(`${base}/api/fleet/tasks/${task.id}/complete`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ output: 'ok' }),
-    }).then((r) => r.json());
-    assert.equal(done.status, 'done');
-    assert.equal(done.reportedTo, 'michael');
+    assert.equal(worked.tasks[0].status, 'done');
+    assert.equal(worked.tasks[0].reportedTo, 'michael');
+    assert.match(worked.tasks[0].result, /munder-worker/);
+    assert.ok(worked.michaelInbox.length >= 1);
   });
 });
 
@@ -89,8 +85,12 @@ test('web mode accepts session cookie after login', async () => {
     });
     assert.equal(login.status, 200);
     const setCookie = login.headers.getSetCookie?.() ?? [];
-    const cookie = setCookie.map((c) => c.split(';')[0]).join('; ') ||
-      (login.headers.get('set-cookie') ?? '').split(',').map((c) => c.split(';')[0].trim()).join('; ');
+    const cookie =
+      setCookie.map((c) => c.split(';')[0]).join('; ') ||
+      (login.headers.get('set-cookie') ?? '')
+        .split(',')
+        .map((c) => c.split(';')[0].trim())
+        .join('; ');
     assert.ok(cookie.includes('munder-session='));
 
     const project = await fetch(`${base}/api/fleet/projects`, {
@@ -102,5 +102,41 @@ test('web mode accepts session cookie after login', async () => {
       return r.json();
     });
     assert.equal(project.name, 'Authed');
+  });
+});
+
+test('decision gate returns 409 on claim', async () => {
+  await withServer('loopback', async (base) => {
+    const project = await fetch(`${base}/api/fleet/projects`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'Gate' }),
+    }).then((r) => r.json());
+    const task = await fetch(`${base}/api/fleet/tasks`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        projectId: project.id,
+        title: 'Blocked',
+        assignee: 'vega',
+        prompt: 'x',
+      }),
+    }).then((r) => r.json());
+    await fetch(`${base}/api/fleet/decisions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        taskId: task.id,
+        kind: 'blocker',
+        message: 'need human',
+        ownerId: 'local-user',
+      }),
+    });
+    const res = await fetch(`${base}/api/fleet/tasks/claim`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ runtimeId: 'runtime:local', maxTasks: 1 }),
+    });
+    assert.equal(res.status, 409);
   });
 });

@@ -4,10 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --experimental-strip-types --test src/**/*.test.ts",
+    "test": "node --experimental-strip-types --test src/**/*.test.ts src/fleet/*.test.ts",
     "fleet": "node --experimental-strip-types src/fleet/cli.ts",
     "demo": "bash scripts/demo-p0.sh",
-    "verify:core": "bash scripts/verify-aioncore.sh"
+    "demo:full": "bash scripts/demo-full.sh",
+    "verify:core": "bash scripts/verify-aioncore.sh",
+    "overlay:core": "bash scripts/apply-fleet-overlay.sh"
   },
   "engines": {
     "node": ">=22"

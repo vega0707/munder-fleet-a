@@ -2,6 +2,7 @@ import http from 'node:http';
 import { hostname } from 'node:os';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { FleetStore } from './store.ts';
+import { claimAndWork } from './worker.ts';
 import type { PendingDecisionKind } from '../types.ts';
 
 export type AuthMode = 'loopback' | 'web';
@@ -11,15 +12,25 @@ export interface FleetServerOptions {
   host?: string;
   port?: number;
   authMode: AuthMode;
-  /** Optional AionCore health URL for shell status panel */
-  coreHealthUrl?: string | null;
+  /** AionCore base URL, e.g. http://127.0.0.1:25808 */
+  coreBaseUrl?: string | null;
   localOwnerId?: string;
 }
 
 interface SessionUser {
   id: string;
   username: string;
+  source: 'loopback' | 'core' | 'local';
+  coreToken?: string;
 }
+
+/** Frozen Electron/loopback contract — never requires credentials. */
+export const LOOPBACK_AUTH_CONTRACT = {
+  mode: 'loopback' as const,
+  requiresCredentials: false,
+  defaultUserId: 'local-user',
+  frozen: true,
+};
 
 const WEB_USERS: Record<string, { password: string; id: string }> = {
   owner: { password: 'owner', id: 'local-user' },
@@ -40,13 +51,16 @@ async function readJson<T>(req: IncomingMessage): Promise<T> {
   return JSON.parse(raw) as T;
 }
 
-function send(res: ServerResponse, status: number, body: unknown): void {
-  const payload = JSON.stringify(body);
+function send(res: ServerResponse, status: number, body: unknown, extraHeaders?: Record<string, string>): void {
+  const payload = status === 204 ? '' : JSON.stringify(body);
   res.writeHead(status, {
     'content-type': 'application/json; charset=utf-8',
     'access-control-allow-origin': '*',
-    'access-control-allow-headers': 'content-type, authorization, cookie, x-munder-loopback',
+    'access-control-allow-headers':
+      'content-type, authorization, cookie, x-munder-loopback, x-csrf-token',
     'access-control-allow-methods': 'GET,POST,OPTIONS',
+    'access-control-allow-credentials': 'true',
+    ...extraHeaders,
   });
   res.end(payload);
 }
@@ -62,13 +76,11 @@ function parseCookies(req: IncomingMessage): Record<string, string> {
   return out;
 }
 
-function sessionUser(req: IncomingMessage, authMode: AuthMode, localOwnerId: string): SessionUser | null {
-  if (authMode === 'loopback') {
-    return { id: localOwnerId, username: 'local-owner' };
-  }
-  const cookies = parseCookies(req);
-  const token = cookies['munder-session'];
-  if (!token) return null;
+function encodeSession(user: SessionUser): string {
+  return Buffer.from(JSON.stringify(user)).toString('base64url');
+}
+
+function decodeSession(token: string): SessionUser | null {
   try {
     const parsed = JSON.parse(Buffer.from(token, 'base64url').toString('utf8')) as SessionUser;
     if (parsed?.id && parsed?.username) return parsed;
@@ -76,6 +88,27 @@ function sessionUser(req: IncomingMessage, authMode: AuthMode, localOwnerId: str
     /* ignore */
   }
   return null;
+}
+
+function sessionUser(req: IncomingMessage, authMode: AuthMode, localOwnerId: string): SessionUser | null {
+  if (authMode === 'loopback') {
+    return {
+      id: localOwnerId,
+      username: 'local-owner',
+      source: 'loopback',
+    };
+  }
+  const auth = req.headers.authorization;
+  if (auth?.startsWith('Bearer ')) {
+    const bearer = auth.slice('Bearer '.length);
+    const fromCookieShape = decodeSession(bearer);
+    if (fromCookieShape) return fromCookieShape;
+    // Opaque Core JWT carried as session later
+  }
+  const cookies = parseCookies(req);
+  const token = cookies['munder-session'];
+  if (!token) return null;
+  return decodeSession(token);
 }
 
 function requireUser(
@@ -92,13 +125,36 @@ function requireUser(
   return user;
 }
 
+async function coreFetch(
+  coreBaseUrl: string,
+  path: string,
+  init?: RequestInit & { cookieJar?: string },
+): Promise<{ status: number; body: unknown; setCookie: string[] }> {
+  const headers = new Headers(init?.headers);
+  if (init?.cookieJar) headers.set('cookie', init.cookieJar);
+  const r = await fetch(`${coreBaseUrl}${path}`, {
+    ...init,
+    headers,
+    signal: AbortSignal.timeout(5000),
+  });
+  const setCookie = typeof r.headers.getSetCookie === 'function' ? r.headers.getSetCookie() : [];
+  const text = await r.text();
+  let body: unknown = {};
+  try {
+    body = text ? JSON.parse(text) : {};
+  } catch {
+    body = { raw: text };
+  }
+  return { status: r.status, body, setCookie };
+}
+
 export async function createFleetServer(opts: FleetServerOptions): Promise<http.Server> {
   const store = opts.store;
   const authMode = opts.authMode;
-  const localOwnerId = opts.localOwnerId ?? 'local-user';
-  const coreHealthUrl = opts.coreHealthUrl ?? null;
+  const localOwnerId = opts.localOwnerId ?? LOOPBACK_AUTH_CONTRACT.defaultUserId;
+  const coreBaseUrl = opts.coreBaseUrl ?? null;
+  const coreHealthUrl = coreBaseUrl ? `${coreBaseUrl}/health` : null;
 
-  // Ensure local runtime exists at boot for loopback / single-node topology.
   store.ensureLocalRuntime({
     ownerId: localOwnerId,
     host: hostname(),
@@ -116,7 +172,12 @@ export async function createFleetServer(opts: FleetServerOptions): Promise<http.
       }
 
       if (method === 'GET' && url.pathname === '/health') {
-        send(res, 200, { status: 'ok', service: 'munder-fleet', authMode });
+        send(res, 200, {
+          status: 'ok',
+          service: 'munder-fleet',
+          authMode,
+          loopbackContract: authMode === 'loopback' ? LOOPBACK_AUTH_CONTRACT : undefined,
+        });
         return;
       }
 
@@ -125,6 +186,9 @@ export async function createFleetServer(opts: FleetServerOptions): Promise<http.
         send(res, 200, {
           authMode,
           authenticated: authMode === 'loopback' || !!user,
+          requiresCredentials: authMode === 'web',
+          loopbackFrozen: LOOPBACK_AUTH_CONTRACT.frozen,
+          coreConfigured: !!coreBaseUrl,
           user: user ?? (authMode === 'loopback' ? { id: localOwnerId, username: 'local-owner' } : null),
         });
         return;
@@ -132,28 +196,85 @@ export async function createFleetServer(opts: FleetServerOptions): Promise<http.
 
       if (method === 'POST' && url.pathname === '/api/auth/login') {
         if (authMode === 'loopback') {
-          send(res, 200, { user: { id: localOwnerId, username: 'local-owner' }, authMode });
+          send(res, 200, {
+            user: { id: localOwnerId, username: 'local-owner', source: 'loopback' },
+            authMode,
+            loopbackContract: LOOPBACK_AUTH_CONTRACT,
+          });
           return;
         }
         const body = await readJson<{ username?: string; password?: string }>(req);
+
+        // Prefer AionCore JWT when Core is configured and reachable.
+        if (coreBaseUrl) {
+          try {
+            const status = await coreFetch(coreBaseUrl, '/api/auth/status');
+            const cookieJar = status.setCookie.map((c) => c.split(';')[0]).join('; ');
+            const login = await coreFetch(coreBaseUrl, '/login', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              cookieJar,
+              body: JSON.stringify({
+                username: body.username,
+                password: body.password,
+              }),
+            });
+            if (login.status === 200) {
+              const loginBody = login.body as {
+                token?: string;
+                user?: { id?: string; username?: string };
+              };
+              const user: SessionUser = {
+                id: loginBody.user?.id ?? localOwnerId,
+                username: loginBody.user?.username ?? body.username ?? 'admin',
+                source: 'core',
+                coreToken: loginBody.token,
+              };
+              send(res, 200, { user, authMode, source: 'core', token: loginBody.token }, {
+                'set-cookie': `munder-session=${encodeSession(user)}; Path=/; HttpOnly; SameSite=Lax`,
+              });
+              return;
+            }
+          } catch {
+            // fall through to local stub
+          }
+        }
+
         const record = body.username ? WEB_USERS[body.username] : undefined;
         if (!record || record.password !== body.password) {
           send(res, 401, { error: 'invalid credentials' });
           return;
         }
-        const user: SessionUser = { id: record.id, username: body.username! };
-        const token = Buffer.from(JSON.stringify(user)).toString('base64url');
-        res.setHeader(
-          'set-cookie',
-          `munder-session=${token}; Path=/; HttpOnly; SameSite=Lax`,
-        );
-        send(res, 200, { user, authMode });
+        const user: SessionUser = { id: record.id, username: body.username!, source: 'local' };
+        send(res, 200, { user, authMode, source: 'local' }, {
+          'set-cookie': `munder-session=${encodeSession(user)}; Path=/; HttpOnly; SameSite=Lax`,
+        });
+        return;
+      }
+
+      if (method === 'GET' && url.pathname === '/api/auth/user') {
+        const user = requireUser(req, res, authMode, localOwnerId);
+        if (!user) return;
+        if (user.source === 'core' && user.coreToken && coreBaseUrl) {
+          try {
+            const r = await coreFetch(coreBaseUrl, '/api/auth/user', {
+              headers: { Authorization: `Bearer ${user.coreToken}` },
+            });
+            if (r.status === 200) {
+              send(res, 200, r.body);
+              return;
+            }
+          } catch {
+            /* fallthrough */
+          }
+        }
+        send(res, 200, { success: true, user });
         return;
       }
 
       if (method === 'GET' && url.pathname === '/api/core/health') {
         if (!coreHealthUrl) {
-          send(res, 200, { available: false, reason: 'coreHealthUrl not configured' });
+          send(res, 200, { available: false, reason: 'coreBaseUrl not configured' });
           return;
         }
         try {
@@ -176,7 +297,7 @@ export async function createFleetServer(opts: FleetServerOptions): Promise<http.
           ownerId: user.id,
           host: hostname(),
         });
-        send(res, 200, { runtime, authMode, user });
+        send(res, 200, { runtime, authMode, user, loopbackContract: LOOPBACK_AUTH_CONTRACT });
         return;
       }
 
@@ -189,22 +310,32 @@ export async function createFleetServer(opts: FleetServerOptions): Promise<http.
       if (method === 'POST' && url.pathname === '/api/fleet/runtimes/register') {
         if (!requireUser(req, res, authMode, localOwnerId)) return;
         const body = await readJson<{
+          id?: string;
           ownerId?: string;
           host?: string;
+          daemonId?: string;
+          maxConcurrentTasks?: number;
           clis?: { provider: string; version?: string }[];
         }>(req);
-        const runtime = store.ensureLocalRuntime({
+        const runtime = store.registerRuntime({
+          id: body.id ?? 'runtime:local',
           ownerId: body.ownerId ?? localOwnerId,
           host: body.host ?? hostname(),
+          daemonId: body.daemonId,
+          maxConcurrentTasks: body.maxConcurrentTasks,
           clis: body.clis,
         });
         send(res, 200, { runtimes: [runtime] });
         return;
       }
 
-      if (method === 'POST' && url.pathname.startsWith('/api/fleet/runtimes/') && url.pathname.endsWith('/heartbeat')) {
+      if (
+        method === 'POST' &&
+        url.pathname.startsWith('/api/fleet/runtimes/') &&
+        url.pathname.endsWith('/heartbeat')
+      ) {
         if (!requireUser(req, res, authMode, localOwnerId)) return;
-        const runtimeId = url.pathname.split('/')[4];
+        const runtimeId = decodeURIComponent(url.pathname.split('/')[4]);
         send(res, 200, store.heartbeat(runtimeId));
         return;
       }
@@ -267,19 +398,53 @@ export async function createFleetServer(opts: FleetServerOptions): Promise<http.
           maxTasks?: number;
           taskId?: string;
         }>(req);
-        const tasks = store.claimTasks({
-          runtimeId: body.runtimeId ?? 'runtime:local',
-          maxTasks: body.maxTasks ?? 1,
-          taskId: body.taskId,
-        });
-        send(res, 200, { tasks });
+        try {
+          const tasks = store.claimTasks({
+            runtimeId: body.runtimeId ?? 'runtime:local',
+            maxTasks: body.maxTasks ?? 1,
+            taskId: body.taskId,
+          });
+          send(res, 200, { tasks });
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          send(res, msg.includes('DecisionGate') ? 409 : 400, { error: msg });
+        }
+        return;
+      }
+
+      if (method === 'POST' && url.pathname === '/api/fleet/tasks/claim-and-work') {
+        if (!requireUser(req, res, authMode, localOwnerId)) return;
+        const body = await readJson<{
+          runtimeId?: string;
+          maxTasks?: number;
+          taskId?: string;
+        }>(req);
+        try {
+          const tasks = await claimAndWork(store, {
+            runtimeId: body.runtimeId ?? 'runtime:local',
+            maxTasks: body.maxTasks ?? 1,
+            taskId: body.taskId,
+          });
+          send(res, 200, {
+            tasks,
+            michaelInbox: store.listMichaelInbox().slice(0, 5),
+          });
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          send(res, msg.includes('DecisionGate') ? 409 : 400, { error: msg });
+        }
         return;
       }
 
       const startMatch = url.pathname.match(/^\/api\/fleet\/tasks\/([^/]+)\/start$/);
       if (method === 'POST' && startMatch) {
         if (!requireUser(req, res, authMode, localOwnerId)) return;
-        send(res, 200, store.startTask(startMatch[1]));
+        try {
+          send(res, 200, store.startTask(decodeURIComponent(startMatch[1])));
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          send(res, msg.includes('DecisionGate') ? 409 : 400, { error: msg });
+        }
         return;
       }
 
@@ -290,7 +455,7 @@ export async function createFleetServer(opts: FleetServerOptions): Promise<http.
         send(
           res,
           200,
-          store.completeTask(completeMatch[1], {
+          store.completeTask(decodeURIComponent(completeMatch[1]), {
             output: body.output ?? '',
             reportTo: body.reportTo,
           }),
@@ -302,7 +467,11 @@ export async function createFleetServer(opts: FleetServerOptions): Promise<http.
       if (method === 'POST' && failMatch) {
         if (!requireUser(req, res, authMode, localOwnerId)) return;
         const body = await readJson<{ error?: string }>(req);
-        send(res, 200, store.failTask(failMatch[1], { error: body.error ?? 'failed' }));
+        send(
+          res,
+          200,
+          store.failTask(decodeURIComponent(failMatch[1]), { error: body.error ?? 'failed' }),
+        );
         return;
       }
 
@@ -347,11 +516,39 @@ export async function createFleetServer(opts: FleetServerOptions): Promise<http.
         send(
           res,
           200,
-          store.resolveDecision(resolveMatch[1], {
+          store.resolveDecision(decodeURIComponent(resolveMatch[1]), {
             resolution: body.resolution ?? 'answered',
             note: body.note,
           }),
         );
+        return;
+      }
+
+      if (method === 'GET' && url.pathname === '/api/fleet/michael/inbox') {
+        if (!requireUser(req, res, authMode, localOwnerId)) return;
+        send(res, 200, { items: store.listMichaelInbox() });
+        return;
+      }
+
+      if (method === 'GET' && url.pathname === '/api/fleet/logs') {
+        if (!requireUser(req, res, authMode, localOwnerId)) return;
+        const taskId = url.searchParams.get('taskId') ?? undefined;
+        send(res, 200, { logs: store.listExecutionLogs({ taskId }) });
+        return;
+      }
+
+      if (method === 'POST' && url.pathname === '/api/fleet/import/hive') {
+        if (!requireUser(req, res, authMode, localOwnerId)) return;
+        const body = await readJson<{ projectId?: string; tasks?: unknown[] }>(req);
+        if (!body.projectId || !Array.isArray(body.tasks)) {
+          send(res, 400, { error: 'projectId and tasks[] required' });
+          return;
+        }
+        const imported = store.importHiveTasks(
+          body.projectId,
+          body.tasks as Parameters<FleetStore['importHiveTasks']>[1],
+        );
+        send(res, 200, { tasks: imported });
         return;
       }
 
