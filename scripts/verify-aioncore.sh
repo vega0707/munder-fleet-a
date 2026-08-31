@@ -2,14 +2,14 @@
 # Verify AionCore build + /health + JWT login (non-local mode).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-CORE="${AIONCORE_DIR:-$ROOT/refs/AionCore}"
+CORE="${AIONCORE_DIR:-$ROOT/core}"
 DATA="${AIONCORE_DATA:-/tmp/munder-aioncore-verify}"
 PORT="${AIONCORE_PORT:-25808}"
 BASE="http://127.0.0.1:${PORT}"
 PASS="${AIONCORE_PASSWORD:-StrongP@ss1}"
 
-if [[ ! -d "$CORE/.git" ]]; then
-  echo "AionCore missing. Run ./scripts/bootstrap-forks.sh first."
+if [[ ! -f "$CORE/Cargo.toml" ]]; then
+  echo "Vendored AionCore missing at $CORE — run ./scripts/sync-core.sh"
   exit 1
 fi
 

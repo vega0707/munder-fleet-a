@@ -1,5 +1,11 @@
-# refs/ is for local upstream clones — do not commit large trees
+# refs/ is for optional upstream *mirrors* — do not commit large trees
 refs/
 !refs/.gitkeep
+
+# Vendored AionCore build artifacts (source under core/ IS committed)
+core/target/
+core/**/target/
+
 data/
 *.db
+node_modules/
