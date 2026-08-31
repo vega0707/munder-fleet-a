@@ -1,0 +1,206 @@
+:root {
+  --ink: #10241c;
+  --muted: #4a6356;
+  --paper: #d5e4db;
+  --panel: rgba(245, 251, 247, 0.78);
+  --line: rgba(16, 36, 28, 0.14);
+  --accent: #0b7a52;
+  --accent-2: #1f5f8b;
+  --danger: #8f2f3a;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --sans: 'Instrument Sans', 'Segoe UI', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--sans);
+  color: var(--ink);
+  background: var(--paper);
+}
+
+.atmosphere {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(1200px 600px at 8% -12%, rgba(11, 122, 82, 0.22), transparent 55%),
+    radial-gradient(900px 500px at 92% 8%, rgba(31, 95, 139, 0.16), transparent 52%),
+    linear-gradient(155deg, #c9ddd1 0%, #e2ece6 48%, #d3e0f0 100%);
+}
+
+.top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 1.5rem 2rem 0.5rem;
+}
+
+.brand-mark {
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.brand-sub {
+  margin-left: 0.55rem;
+  font-family: var(--mono);
+  font-size: 0.95rem;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.auth-status {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.layout {
+  padding: 1rem 2rem 3rem;
+  max-width: 1100px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.login-panel,
+.app-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(8px);
+  padding: 1.25rem 1.5rem 1.5rem;
+}
+
+.login-panel h1,
+.pane h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+}
+
+.login-panel p {
+  color: var(--muted);
+  margin: 0 0 1rem;
+}
+
+.login-panel form {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 320px;
+}
+
+label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+}
+
+input,
+button {
+  font: inherit;
+}
+
+input {
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.85);
+}
+
+button {
+  cursor: pointer;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: #f5f8f4;
+  padding: 0.55rem 0.9rem;
+}
+
+button:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.core-pill {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 760px) {
+  .columns {
+    grid-template-columns: 1fr;
+  }
+  .top,
+  .layout {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+.pane {
+  border-top: 1px solid var(--line);
+  padding-top: 0.75rem;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.list li {
+  padding: 0.75rem 0.15rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.list .meta {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 0.25rem;
+}
+
+.list .title {
+  font-weight: 600;
+}
+
+.status-done {
+  color: var(--accent);
+}
+
+.status-blocked,
+.status-pending {
+  color: var(--accent-2);
+}
+
+button.resolve {
+  margin-top: 0.45rem;
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--line);
+  padding: 0.35rem 0.65rem;
+  font-size: 0.85rem;
+}

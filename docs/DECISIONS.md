@@ -15,3 +15,9 @@
 ## 2026-08-31 — 看板
 
 保持 assignee；不做按角色分泳道的强制改版。
+
+## 2026-08-31 — P0 Fleet 平面先落在本仓 `src/`
+
+P0 将 Multica **语义**（Runtime 注册 / claim / PendingDecision / 完成回传 Michael）实现为本仓 TypeScript 控制面（`src/fleet` + `shell/`），不 vendor Multica 源码。  
+AionCore 钉在 `docs/VERSIONS.md` 的 fork 点，用 `scripts/verify-aioncore.sh` 证明 `/health` + JWT。  
+目标态仍是把 Fleet 合入 AionCore fork；P0 用可演示的协议层解耦编译面与产品壳。

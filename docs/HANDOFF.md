@@ -37,9 +37,9 @@
 
 ## 交接检查清单
 
-- [ ] 上游 clone 成功，版本钉在 `refs/VERSIONS.md`（bootstrap 脚本生成）
-- [ ] P0 勾选见 README
-- [ ] 有问题记入 `docs/DECISIONS.md` 新条目，不要只留在聊天里
+- [x] 上游 clone 成功，版本钉在 `docs/VERSIONS.md`（bootstrap 亦写 `refs/VERSIONS.md`）
+- [x] P0 勾选见 README
+- [x] 有问题记入 `docs/DECISIONS.md` 新条目，不要只留在聊天里
 
 ## 联系语境
 
