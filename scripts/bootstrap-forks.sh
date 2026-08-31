@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Clone upstream references into refs/ (gitignored). Does not fork on GitHub.
+# Clone *reference* upstreams into refs/ (gitignored). AionCore product tree is vendored at core/.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 REF="$ROOT/refs"
@@ -15,11 +15,12 @@ clone_or_update() {
     echo "Cloning $dir ..."
     git clone --depth 1 "$url" "$REF/$dir"
   fi
-  echo "$dir $(git -C "$REF/$dir" rev-parse --short HEAD) $(git -C "$REF/$dir" rev-parse HEAD)" 
+  echo "$dir $(git -C "$REF/$dir" rev-parse --short HEAD) $(git -C "$REF/$dir" rev-parse HEAD)"
 }
 
 {
   echo "# Pinned upstream HEADs (generated $(date -u +%Y-%m-%dT%H:%M:%SZ))"
+  echo "# Product AionCore lives in ../core/ (vendored). refs/AionCore is optional mirror only."
   clone_or_update https://github.com/iOfficeAI/AionCore.git AionCore
   clone_or_update https://github.com/iOfficeAI/AionUi.git AionUi
   clone_or_update https://github.com/iOfficeAI/aionrs.git aionrs
@@ -28,4 +29,4 @@ clone_or_update() {
 } | tee "$REF/VERSIONS.md"
 
 echo "Done. See refs/VERSIONS.md"
-echo "NOTE: Creating your org fork of AionCore on GitHub must be done with a write-capable account."
+echo "Vendored runtime Core: $ROOT/core (pin in docs/VERSIONS.md). Refresh with ./scripts/sync-core.sh"

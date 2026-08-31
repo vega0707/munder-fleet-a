@@ -10,7 +10,7 @@
 └──────────────────────────┬──────────────────────────────┘
                            │ HTTP/WS（本机可走 loopback 免登）
 ┌──────────────────────────▼──────────────────────────────┐
-│ AIONCORE FORK（主后端）                                   │
+│ AIONCORE（本仓 monorepo：`core/`）                        │
 │ auth · realtime · session/CLI lifecycle · Team MCP/wake  │
 │ + Fleet 扩展：RuntimeRegistry · Claim · Blocker→Owner    │
 └──────────────────────────┬──────────────────────────────┘
@@ -21,7 +21,7 @@
 └─────────────────────────────────────────────────────────┘
 ```
 
-多机时：每台机器跑 **同一 Core 的 daemon 模式** 或 **轻量 runtime agent** 连中央 Core；语义对齐 Multica（heartbeat、claim、execution log），实现落在本 fork 内。
+多机时：每台机器跑 **本仓 `core/` 编译出的同一 Core** 的 daemon 模式，或轻量 runtime agent 连中央 Core；语义对齐 Multica（heartbeat、claim、execution log），实现落在本仓 `core/`（不 vendor Multica 源码）。过渡期 TS `src/fleet` 可作对照实现。
 
 ## 核心对象（统一，无第二套）
 

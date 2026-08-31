@@ -28,3 +28,9 @@ AionCore 钉在 `docs/VERSIONS.md` 的 fork 点，用 `scripts/verify-aioncore.s
 - P1 DecisionGate + Michael inbox；P2 多 runtime/heartbeat/并发上限/手动 claim；P3 日志用量、hive 导入、穿透文档。
 - AionCore 合入路径：`overlays/aioncore-fleet` + `scripts/apply-fleet-overlay.sh`（migration 先行；Rust 路由待 org fork）。
 - 明确未做：真实 Team MCP wake 全链路、真实 Agent CLI 协议、GitHub org fork 创建。
+
+## 2026-08-31 — AionCore 收入本仓 monorepo（`core/`）
+
+产品方要求 A/B/C/D **最终表现一致**，A 线实现改为 **单仓**：把钉住的 AionCore 源码 vendor 进本仓 `core/`（保留 Apache-2.0 LICENSE/NOTICE，记录 fork SHA），Fleet overlay 直接打进 `core/`，不再以「外仓改 fork」为主路径。  
+`refs/` 仍可作其它上游对照克隆（gitignore）；Multica **仍不** vendor。  
+Rust Fleet 路由在本仓 `core/` 上继续演进；TS `src/fleet` 继续作语义对照与演示壳后端，直至 Core 路由对齐后收敛。

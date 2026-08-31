@@ -5,13 +5,16 @@
 1. **单一协议**：禁止添加 `solo`/`distributed` 模式枚举；本地 = 单节点。
 2. **表现层品牌是 Munder**：不要把默认 UI 换成 AionUi。
 3. **Multica 源码默认不 vendor**：实现 claim/runtime 时自己写；引用上游仅作行为对照。
-4. **AionCore 变更要可追溯**：记录 fork 点 commit；保留 Apache-2.0 归属。
+4. **AionCore 在本仓 `core/`**：变更可追溯（`docs/VERSIONS.md` pin）；保留 Apache-2.0 归属（`core/LICENSE` + `MUNDER_FORK_NOTICE.md`）。
 5. **先更新 `docs/DECISIONS.md` 再改架构方向**。
 6. **断言上游 CLI 行为必须有依据**（抓包/文档/本仓测试）——继承 AionCore AGENTS 精神。
 
 ## 开工命令
 
 ```bash
-./scripts/bootstrap-forks.sh
-# 然后按 docs/HANDOFF.md
+npm test && npm run demo
+# Core：npm run verify:core
+# 刷新 vendor：npm run sync:core
+# 对照上游镜像（可选）：./scripts/bootstrap-forks.sh
+# 详情：docs/HANDOFF.md
 ```

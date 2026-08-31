@@ -9,7 +9,8 @@
     "demo": "bash scripts/demo-p0.sh",
     "demo:full": "bash scripts/demo-full.sh",
     "verify:core": "bash scripts/verify-aioncore.sh",
-    "overlay:core": "bash scripts/apply-fleet-overlay.sh"
+    "overlay:core": "bash scripts/apply-fleet-overlay.sh",
+    "sync:core": "bash scripts/sync-core.sh"
   },
   "engines": {
     "node": ">=22"

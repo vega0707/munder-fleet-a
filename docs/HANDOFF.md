@@ -1,50 +1,44 @@
 # HANDOFF — munder-fleet-a
 
-> 给下一个人类或 Cloud Agent：读完本文即可开工，无需回放原对话。
+> 给下一个人类或 Cloud Agent：读完本文即可开工。**本仓 = monorepo**（壳 + Fleet 语义 + vendored AionCore）。
 
-## 背景（从哪来）
+## 本仓状态（2026-08-31）
 
-产品方要把 **Munder Difflin（表现层）**、**Aion 系（Core/远程/Team）**、**Multica（多机接活）** 整合成一个大产品。
+| 项 | 状态 |
+|----|------|
+| PR #1 / #2 | 已合入 `main`（TS Fleet P0–P3 语义面） |
+| AionCore | **vendor 在 `core/`**（钉 SHA，Apache-2.0） |
+| Multica | 仅语义对齐，**不** vendor |
+| A/B/C/D | 最终用户表现应对齐；实现栈不同——A = Core monorepo |
 
-拍板要点：
+```bash
+npm test && npm run demo && npm run demo:full
+npm run verify:core      # 编 core/ 并打 /health + JWT
+npm run overlay:core     # 把 Fleet migration 再打进 core/
+npm run sync:core        # 从上游按 pin 刷新 core/（维护者）
+```
 
-1. **不要双模式**；本地 = Fleet 协议的单节点部署。
-2. **三条路线并行探索**：A 激进 / B 中等 / C 自研对齐——本仓是 **A**。
-3. 看板保持 Munder 的 **assignee** 模型；最多以后加「按角色筛选」。
-4. Electron **本机免鉴权**；Web/远程 **必鉴权**。
-5. HITL：**待定列表硬闸**（不清则卡住后续工具），本地全部 owner=你。
+## 背景
 
-原讨论仓：`vega0707/munder-difflin`（分支规划：`cursor/fleet-strategies-abc-d985`）。
+产品方要把 Munder / Aion / Multica 合成一个大产品。四条策略仓探索不同主核；**表现层目标一致**（Munder 壳、assignee、本机免登、待定硬闸、claim、回传 Michael）。
 
-## 本仓目标
+本仓 Strategy **A**：AionCore 作控制面，收进同一仓库。
 
-把 **AionCore 变成主后端**，在其上实现 Multica 风格的 runtime/claim，Munder 只做 UI 壳。
+## 立刻该做（按序）
 
-## 立刻该做的事（按序）
+1. 读本文件 + `docs/DECISIONS.md`（含 monorepo 决策）
+2. `npm test` / `npm run demo:full`
+3. 在 **`core/`** 实现 `aionui-fleet` Rust 路由（对齐 `src/fleet`）；migration 已在 `core/crates/aionui-db/migrations/044_*`
+4. Team MCP wake / 真 Agent CLI：有依据再做（禁止猜协议）
 
-1. `./scripts/bootstrap-forks.sh` —— 拉取上游到 `refs/`（不提交）
-2. `npm test && npm run demo:full` —— Fleet 语义面
-3. `npm run verify:core` —— AionCore health + JWT（需 cargo build）
-4. `npm run overlay:core` —— 把 Fleet migration 落到 refs/AionCore
-5. org 账号创建 AionCore fork 后合入 `overlays/aioncore-fleet` 的 Rust 路由
+## 不要做
 
-## 明确不要做的事
-
-- 不要用 AionUi 替换 Munder 办公楼作为默认壳（AionUi 仅对照远程/待确认交互）
-- 不要整仓拷贝 Multica 进产品做对外 SaaS（许可附加条件）；协议重写
-- 不要再引入 `solo|distributed` 配置枚举
-- 不要在未读 `COPY_MAP.md` 前大面积合并上游
-- 不要猜测 Agent CLI 线协议（见 AionCore AGENTS）
-
-## 交接检查清单
-
-- [x] 上游 clone 成功，版本钉在 `docs/VERSIONS.md`（bootstrap 亦写 `refs/VERSIONS.md`）
-- [x] P0–P3 语义面勾选见 ROADMAP / README
-- [x] 有问题记入 `docs/DECISIONS.md` 新条目，不要只留在聊天里
-- [ ] GitHub org fork AionCore + Rust `aionui-fleet` 路由合入（人工）
+- 不要用 AionUi 替换 Munder 默认壳
+- 不要整仓拷贝 Multica；不要 `solo|distributed`
+- 不要未读 `COPY_MAP.md` 就大面积合并上游
+- 不要再把「改外仓 fork」当主路径——主树就是 `core/`
 
 ## 联系语境
 
-- 表现层品牌：**Munder**
-- 编排者角色名可继续叫 **Michael**（映射 Aion Lead / Multica squad leader）
-- 分布式接活：角色（如 vega/开发）绑定本机 CLI（Claude/Codex/Cursor），手动或自动 claim，问题问 **该角色主人**，完成后回传 Michael
+- 品牌：**Munder** · 编排者：**Michael**
+- 分布式：角色绑本机 CLI，claim 后问角色主人，完成回传 Michael
