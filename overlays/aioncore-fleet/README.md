@@ -14,12 +14,12 @@ See `FORK_POINT.md` (mirrors `docs/VERSIONS.md` in munder-fleet-a).
 # from munder-fleet-a root; target defaults to refs/AionCore
 ```
 
-## Remaining Rust wiring (org fork)
+## Remaining Rust wiring（在 `vega0707/AionCore`，非本仓）
 
 1. Add `aionui-fleet` crate (routes/service) or module under `aionui-project`.
 2. Expose `/api/fleet/*` behind auth middleware; `--local` uses `system_default_user`.
-3. Port DecisionGate onto tool confirmation path (P1).
-4. Keep Apache-2.0 NOTICE; record fork SHA.
+3. Port DecisionGate onto tool confirmation path (align `src/fleet` in munder-fleet-a).
+4. Keep Apache-2.0 NOTICE; record fork SHA back into munder-fleet-a `docs/VERSIONS.md`.
 
 ## License
 

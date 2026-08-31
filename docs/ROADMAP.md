@@ -1,5 +1,7 @@
 # ROADMAP — Strategy A
 
+> **本仓一期：已收口**（`main` 含 #1 + #2）。下列未勾项属于 **外仓 / 有权限集成**，不阻塞本仓演示。
+
 ## P0 — Core 立住 + 单节点 Fleet
 
 - [x] Fork AionCore，钉版本，跑通健康检查与 JWT（`docs/VERSIONS.md` · `scripts/verify-aioncore.sh`）
@@ -13,7 +15,7 @@
 - [x] Michael/Lead 收完成（`/api/fleet/michael/inbox`；idle 可后续接 Team MCP wake）
 - [x] DecisionGate：pending 时拒绝新 claim/start（409）
 - [x] Electron 本机免鉴权通道冻结（`LOOPBACK_AUTH_CONTRACT`）
-- [ ] Team MCP wake 全链路（依赖 AionCore Team 运行时；overlay 已备表，Rust 接线待 org fork）
+- [ ] Team MCP wake 全链路 → **外仓** AionCore Team 运行时（本仓不阻塞）
 
 ## P2 — 多机（Multica 语义）
 
@@ -34,8 +36,11 @@
 - 内置 frp/ngrok 一键隧道
 - 完整 Pixi 楼移植进 AionUi
 
-## 仍待人工 / org fork
+## 外仓后续（非本仓阻塞）
 
-- GitHub 上创建 AionCore org fork（本环境 `gh` 只读）
-- 将 `overlays/aioncore-fleet` 的 Rust 路由 crate 合入该 fork（`npm run overlay:core` 仅落 migration/docs）
-- 真实 Agent CLI（Claude/Codex）接线 — 禁止猜测 CLI 协议；需抓包/文档后再断言
+| 项 | 落点 |
+|----|------|
+| 个人 fork 已存在 | [`vega0707/AionCore`](https://github.com/vega0707/AionCore)（仍为上游镜像，尚无 Fleet 提交） |
+| Rust Fleet 路由 | 在该 fork 实现；本仓 `overlays/aioncore-fleet` + `npm run overlay:core` 仅 migration/docs |
+| 真 Agent CLI | 禁止猜协议；有依据后再接 |
+| 回写钉 SHA | 合入后小 PR 更新本仓 `VERSIONS` / `DECISIONS` |
