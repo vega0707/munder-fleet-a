@@ -3,34 +3,39 @@
 ## P0 — Core 立住 + 单节点 Fleet
 
 - [x] Fork AionCore，钉版本，跑通健康检查与 JWT（`docs/VERSIONS.md` · `scripts/verify-aioncore.sh`）
-- [x] 扩展最小 Fleet 表/类型：Runtime、PendingDecision（`src/types.ts`；P0 内存 store）
+- [x] 扩展最小 Fleet 表/类型：Runtime、PendingDecision（`src/types.ts` + SQLite）
 - [x] 本机自动 register runtime（`runtime:local`）
-- [x] Munder 或最小壳：登录（Web）/免登（loopback）、任务列表、待定列表（`shell/`）
-- [x] DoD：单机 claim→干活→完成回传可演示（`npm run demo`）
-
-> P0 Fleet 控制面暂在本仓 `src/fleet`（见 DECISIONS）；合入 AionCore fork 为后续工作。
+- [x] Munder 或最小壳：登录（Web / Core JWT）/免登（loopback 冻结）、任务列表、待定列表（`shell/`）
+- [x] DoD：单机 claim→**干活(subprocess)**→完成回传可演示（`npm run demo` / `demo:full`）
 
 ## P1 — Team 协作（Aion）
 
-- 打通 Team MCP wake；Michael/Lead 收 idle/完成
-- DecisionGate：pending 时拒绝/挂起新工具
-- Electron 本机免鉴权通道冻结
+- [x] Michael/Lead 收完成（`/api/fleet/michael/inbox`；idle 可后续接 Team MCP wake）
+- [x] DecisionGate：pending 时拒绝新 claim/start（409）
+- [x] Electron 本机免鉴权通道冻结（`LOOPBACK_AUTH_CONTRACT`）
+- [ ] Team MCP wake 全链路（依赖 AionCore Team 运行时；overlay 已备表，Rust 接线待 org fork）
 
 ## P2 — 多机（Multica 语义）
 
-- 第二台机器 runtime 注册 + heartbeat
-- 手动 claim + 自动 claim（并发上限）
-- Blocker 只推给 role owner
-- 项目内看板只读可见他人进行中任务（assignee 模型不变）
+- [x] 第二台机器 runtime 注册 + heartbeat（`register` + `/heartbeat`；`demo:full`）
+- [x] 手动 claim（`taskId`）+ 自动 claim（`maxConcurrentTasks` 并发上限）
+- [x] Blocker 只推给 role owner（`PendingDecision.ownerId`）
+- [x] 项目内看板只读可见他人进行中任务（assignee 模型不变 · `listTasks`）
 
 ## P3 — 产品化
 
-- 穿透文档（自备，不内置）
-- 执行日志/用量（可对齐 Multica 能力清单）
-- 从 Munder 迁移 hive 任务导入
+- [x] 穿透文档（自备，不内置）— `docs/TUNNELING.md`
+- [x] 执行日志/用量 — `/api/fleet/logs`（tokensIn/Out）
+- [x] 从 Munder 迁移 hive 任务导入 — `/api/fleet/import/hive`
 
 ## 非目标（本仓一期）
 
 - 公有云代跑 agent 算力
 - 内置 frp/ngrok 一键隧道
 - 完整 Pixi 楼移植进 AionUi
+
+## 仍待人工 / org fork
+
+- GitHub 上创建 AionCore org fork（本环境 `gh` 只读）
+- 将 `overlays/aioncore-fleet` 的 Rust 路由 crate 合入该 fork（`npm run overlay:core` 仅落 migration/docs）
+- 真实 Agent CLI（Claude/Codex）接线 — 禁止猜测 CLI 协议；需抓包/文档后再断言

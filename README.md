@@ -9,7 +9,7 @@
 | 策略代号 | **A** |
 | 姊妹仓（含 [`munder-fleet-d`](../munder-fleet-d)） | [`munder-fleet-b`](../munder-fleet-b)（中等）· [`munder-fleet-c`](../munder-fleet-c)（自研对齐） |
 | 上游对照 | [iOfficeAI/AionCore](https://github.com/iOfficeAI/AionCore) · [iOfficeAI/AionUi](https://github.com/iOfficeAI/AionUi) · [multica-ai/multica](https://github.com/multica-ai/multica) · [vega0707/munder-difflin](https://github.com/vega0707/munder-difflin) |
-| 状态 | **P0 可演示** · AionCore 钉版 + Fleet 语义层 + 最小 Munder 壳 |
+| 状态 | **P0–P3 语义面可演示** · AionCore 钉版 + Fleet（SQLite/Worker/Gate）+ Munder 壳 · Core Rust 合入待 org fork |
 
 ## 你要做什么（执行顺序）
 
@@ -45,28 +45,25 @@ PendingDecision → owner
 munder-fleet-a/
   README.md
   AGENTS.md
-  package.json              # Fleet 测试 / demo / verify 脚本
-  docs/
-    HANDOFF.md
-    ARCHITECTURE.md
-    COPY_MAP.md
-    ROADMAP.md
-    DECISIONS.md
-    VERSIONS.md             # 上游 SHA 钉（可提交）
-    superpowers/plans/      # 实施计划
+  package.json
+  docs/                     # HANDOFF / ROADMAP / VERSIONS / TUNNELING …
+  overlays/aioncore-fleet/  # Core migration overlay
   scripts/
     bootstrap-forks.sh
-    demo-p0.sh              # claim→complete
-    verify-aioncore.sh      # Core /health + JWT
+    demo-p0.sh / demo-full.sh
+    verify-aioncore.sh
+    apply-fleet-overlay.sh
   shell/                    # 最小 Munder Web 壳
-  src/                      # Fleet 语义 + Core 适配
+  src/fleet/                # Fleet 语义控制面
   refs/                     # gitignore：本地上游克隆
 ```
 
 ## 成功标准（Definition of Done · P0）
 
 - [x] `refs/AionCore` 可编译启动，JWT + 健康检查可用（`npm run verify:core`）
-- [x] Munder 壳（或最小 Electron/Web）能连上该 Core（本机免鉴权路径存在）——`shell/` + Fleet `loopback`；Core 侧 `--local`
-- [x] 数据模型含：Project、Task(assignee)、Runtime、PendingDecision(owner)
-- [x] 单机自动注册 local runtime；完成任务可回传编排者（Michael/Lead）——`npm run demo`
+- [x] Munder 壳能连 Core（loopback 免鉴权冻结；Web 优先 Core JWT）
+- [x] 数据模型含：Project、Task(assignee)、Runtime、PendingDecision(owner) + SQLite
+- [x] 单机自动注册 local runtime；claim→subprocess 干活→回传 Michael（`npm run demo` / `demo:full`）
 - [x] 文档写明 Multica 为语义对齐而非源码合并（除非法务放行）
+
+P1–P3 勾选见 [`docs/ROADMAP.md`](./docs/ROADMAP.md)。
