@@ -9,14 +9,14 @@
 | 策略代号 | **A** |
 | 姊妹仓（含 [`munder-fleet-d`](../munder-fleet-d)） | [`munder-fleet-b`](../munder-fleet-b)（中等）· [`munder-fleet-c`](../munder-fleet-c)（自研对齐） |
 | 上游对照 | [iOfficeAI/AionCore](https://github.com/iOfficeAI/AionCore) · [iOfficeAI/AionUi](https://github.com/iOfficeAI/AionUi) · [multica-ai/multica](https://github.com/multica-ai/multica) · [vega0707/munder-difflin](https://github.com/vega0707/munder-difflin) |
-| 状态 | **P0–P3 语义面可演示** · AionCore 钉版 + Fleet（SQLite/Worker/Gate）+ Munder 壳 · Core Rust 合入待 org fork |
+| 状态 | **本仓一期已收口**（#1+#2）· P0–P3 语义面可演示 · Core Rust Fleet → [`vega0707/AionCore`](https://github.com/vega0707/AionCore) |
 
-## 你要做什么（执行顺序）
+## 你要做什么（本仓已收口）
 
-1. 读 [`docs/HANDOFF.md`](./docs/HANDOFF.md)（交接必读）
-2. 读 [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) + [`docs/COPY_MAP.md`](./docs/COPY_MAP.md)
-3. 跑 [`scripts/bootstrap-forks.sh`](./scripts/bootstrap-forks.sh)（fork/clone 上游到 `refs/`）
-4. 按 [`docs/ROADMAP.md`](./docs/ROADMAP.md) P0→P3 推进
+1. 读 [`docs/HANDOFF.md`](./docs/HANDOFF.md)（现状与外仓后续）
+2. 本地验证：`npm test && npm run demo && npm run demo:full`
+3. Core 相关：`npm run verify:core` / `npm run overlay:core`（可选）
+4. **Fleet Rust / Team MCP / 真 CLI** → 去 [`vega0707/AionCore`](https://github.com/vega0707/AionCore)，不要在本仓再开大 PR
 5. **不要**把 Multica 源码当可商用 SaaS 组件直接嵌入对外售卖产品——见许可专节
 
 ## 本地 = 分布式的一种用法

@@ -26,5 +26,11 @@ AionCore 钉在 `docs/VERSIONS.md` 的 fork 点，用 `scripts/verify-aioncore.s
 
 - SQLite 持久化；`claim-and-work` 真实 subprocess；Web 登录优先代理 AionCore JWT；loopback 合同冻结。
 - P1 DecisionGate + Michael inbox；P2 多 runtime/heartbeat/并发上限/手动 claim；P3 日志用量、hive 导入、穿透文档。
-- AionCore 合入路径：`overlays/aioncore-fleet` + `scripts/apply-fleet-overlay.sh`（migration 先行；Rust 路由待 org fork）。
-- 明确未做：真实 Team MCP wake 全链路、真实 Agent CLI 协议、GitHub org fork 创建。
+- AionCore 合入路径：`overlays/aioncore-fleet` + `scripts/apply-fleet-overlay.sh`（migration 先行；Rust 路由待 fork）。
+- 当时未做：Team MCP wake 全链路、真实 Agent CLI、GitHub fork 上的 Rust Fleet。
+
+## 2026-08-31 — 本仓一期收口
+
+- `main` 已含 PR #1 + #2；本仓不再并行扩语义面。
+- 个人 fork [`vega0707/AionCore`](https://github.com/vega0707/AionCore) 已存在，但尚无 Fleet 提交；后续在 **该仓** 做 Rust `aionui-fleet`，本仓只保留 overlay 与文档回写。
+- Team MCP wake / 真 CLI 明确为外仓后续，不阻塞本仓 DoD。

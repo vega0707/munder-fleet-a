@@ -7,5 +7,6 @@
 | Short | `9bfb2ad` |
 | License | Apache-2.0 — retain NOTICE/版权 on any org fork |
 
-Creating the GitHub org fork requires a write-capable account (this Cloud Agent `gh` is read-only for writes).
+Personal tracking fork: https://github.com/vega0707/AionCore（截至本仓收口仍为上游镜像，无 Fleet 提交）。
 Local clone: `refs/AionCore` via `./scripts/bootstrap-forks.sh`.
+Rust `aionui-fleet` 在该 fork 实现，不在 munder-fleet-a 继续堆。
