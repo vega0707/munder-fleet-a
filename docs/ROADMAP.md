@@ -2,11 +2,13 @@
 
 ## P0 — Core 立住 + 单节点 Fleet
 
-- Fork AionCore，钉版本，跑通健康检查与 JWT
-- 扩展最小 Fleet 表/类型：Runtime、PendingDecision
-- 本机自动 register runtime
-- Munder 或最小壳：登录（Web）/免登（loopback）、任务列表、待定列表
-- DoD：单机 claim→干活→完成回传可演示
+- [x] Fork AionCore，钉版本，跑通健康检查与 JWT（`docs/VERSIONS.md` · `scripts/verify-aioncore.sh`）
+- [x] 扩展最小 Fleet 表/类型：Runtime、PendingDecision（`src/types.ts`；P0 内存 store）
+- [x] 本机自动 register runtime（`runtime:local`）
+- [x] Munder 或最小壳：登录（Web）/免登（loopback）、任务列表、待定列表（`shell/`）
+- [x] DoD：单机 claim→干活→完成回传可演示（`npm run demo`）
+
+> P0 Fleet 控制面暂在本仓 `src/fleet`（见 DECISIONS）；合入 AionCore fork 为后续工作。
 
 ## P1 — Team 协作（Aion）
 

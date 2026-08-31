@@ -1,0 +1,15 @@
+{
+  "name": "munder-fleet-a",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-strip-types --test src/**/*.test.ts",
+    "fleet": "node --experimental-strip-types src/fleet/cli.ts",
+    "demo": "bash scripts/demo-p0.sh",
+    "verify:core": "bash scripts/verify-aioncore.sh"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
