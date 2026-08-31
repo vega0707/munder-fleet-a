@@ -13,7 +13,7 @@
 - [x] Michael/Lead 收完成（`/api/fleet/michael/inbox`；idle 可后续接 Team MCP wake）
 - [x] DecisionGate：pending 时拒绝新 claim/start（409）
 - [x] Electron 本机免鉴权通道冻结（`LOOPBACK_AUTH_CONTRACT`）
-- [ ] Team MCP wake 全链路（依赖 AionCore Team 运行时；overlay 已备表，Rust 接线待 org fork）
+- [x] Team MCP wake 桥接：Fleet 完成/idle → AionCore team mailbox（`aionui-fleet` `TeamNotifyPort` → `FleetTeamMailboxNotify` 写 `message`/`idle_notification` 给 team lead；`cargo test` 覆盖 + local 实机验证）
 
 ## P2 — 多机（Multica 语义）
 
@@ -36,6 +36,6 @@
 
 ## 仍待人工 / org fork
 
-- GitHub 上创建 AionCore org fork（本环境 `gh` 只读）
-- 将 `overlays/aioncore-fleet` 的 Rust 路由 crate 合入该 fork（`npm run overlay:core` 仅落 migration/docs）
-- 真实 Agent CLI（Claude/Codex）接线 — 禁止猜测 CLI 协议；需抓包/文档后再断言
+- [x] GitHub 创建 AionCore fork → `vega0707/AionCore`（fork 点 `9bfb2ad`，见 `overlays/aioncore-fleet/FORK_POINT.md`）
+- [x] `aionui-fleet` crate 合入 fork：`/api/fleet/*` 路由（register/heartbeat/claim/claim-and-work/decisions/michael/logs/import/hive）+ DecisionGate + `--local` 免鉴权 + Web auth middleware；`cargo test -p aionui-fleet` 6 用例通过；Team mailbox 桥（B）实机验证
+- [ ] 真实 Agent CLI（Claude/Codex）接线 — 禁止猜测 CLI 协议；需抓包/文档后再断言（本环境无 `~/aion/protocols/samples/` 依据，未做）
