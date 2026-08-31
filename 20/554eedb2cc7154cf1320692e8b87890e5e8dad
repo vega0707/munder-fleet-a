@@ -1,0 +1,26 @@
+overlays/aioncore-fleet/FORK_POINT.md
+  s_e83a5402cf255a::t_d2ff4535cc656e 8-10,12
+docs/DECISIONS.md
+  s_e83a5402cf255a::t_0fa5c77dd463c7 39-42
+  s_e83a5402cf255a::t_a5436d466bcb94 31-38
+docs/ROADMAP.md
+  s_e83a5402cf255a::t_6d98913d21be23 40-41
+  s_e83a5402cf255a::t_e9418f35311956 39
+  s_e83a5402cf255a::t_8c2648686b83d5 16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.43-trip",
+  "base_commit_sha": "20554eedb2cc7154cf1320692e8b87890e5e8dad",
+  "prompts": {},
+  "sessions": {
+    "s_e83a5402cf255a": {
+      "agent_id": {
+        "tool": "chengxiaobang",
+        "id": "s_pm1eoc8ugaw1",
+        "model": "auto"
+      },
+      "human_author": "vega <jw_xiao@trip.com>"
+    }
+  }
+}
